@@ -94,7 +94,7 @@ func getHTML(rawURL string) (string, error) {
 		return "", fmt.Errorf("response status code: %d", resp.StatusCode)
 	}
 	if !strings.Contains(resp.Header.Get("Content-Type"), "text/html") {
-		return "", fmt.Errorf("site content not html text: %v", resp.Header.Get("Content-Type"))
+		return "", fmt.Errorf("skipping non-html content: %v", resp.Header.Get("Content-Type"))
 	}
 	htmlBytes, err := io.ReadAll(resp.Body)
 	if err != nil {
@@ -126,7 +126,7 @@ func (cfg *config) crawlPage(rawCurrentURL string) {
 
 	html, err := getHTML(fetch_url)
 	if err != nil {
-		log.Println(err.Error())
+		log.Printf("WARN: %s\n", err.Error())
 		return
 	}
 	pageData := extractPageData(html, rawCurrentURL)
@@ -142,7 +142,6 @@ func (cfg *config) crawlPage(rawCurrentURL string) {
 		log.Println(err.Error())
 		return
 	}
-	fmt.Printf("Page Crawled: %s\n", rawCurrentURL)
 	for _, link := range links {
 		cfg.wg.Add(1)
 		go cfg.crawlPage(link)
