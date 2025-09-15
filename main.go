@@ -56,12 +56,14 @@ func main() {
 		concurrencyControl: make(chan struct{}, concurrency),
 		wg:                 &waitGroup,
 		maxPages:           maxPages,
+		fileOutName:        "report.csv",
 	}
 	config.wg.Add(1)
 	go config.crawlPage(baseUrl)
 	config.wg.Wait()
-	for key, value := range pages {
-		fmt.Printf("%s: %d\n", key, value.Visits)
+	err = WriteCSVReport(config.pages, config.fileOutName)
+	if err != nil {
+		log.Fatal(err.Error())
 	}
 }
 
@@ -72,6 +74,7 @@ type config struct {
 	concurrencyControl chan struct{}
 	wg                 *sync.WaitGroup
 	maxPages           int
+	fileOutName        string
 }
 
 func getHTML(rawURL string) (string, error) {
