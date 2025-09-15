@@ -278,3 +278,69 @@ func TestGetURLsFromHTMLAbsolute(t *testing.T) {
 		})
 	}
 }
+
+func TestExtractPageData(t *testing.T) {
+	testCases := []struct {
+		name     string
+		html     string
+		pageURL  string
+		expected PageData
+	}{
+		{
+			name: "complete page data",
+			html: `<html><body>
+				<h1>Test Title</h1>
+				<main><p>Main paragraph content</p></main>
+				<a href="/about">About</a>
+				<img src="/logo.png" alt="Logo">
+			</body></html>`,
+			pageURL: "https://blog.boot.dev/path",
+			expected: PageData{
+				URL:            "blog.boot.dev/path",
+				H1:             "Test Title",
+				FirstParagraph: "Main paragraph content",
+				OutgoingLinks:  []string{"https://blog.boot.dev/about"},
+				ImageURLs:      []string{"https://blog.boot.dev/logo.png"},
+			},
+		},
+		{
+			name:    "missing elements",
+			html:    `<html><body><div>No structured content</div></body></html>`,
+			pageURL: "https://blog.boot.dev",
+			expected: PageData{
+				URL:            "blog.boot.dev",
+				H1:             "",
+				FirstParagraph: "",
+				OutgoingLinks:  nil,
+				ImageURLs:      nil,
+			},
+		},
+		{
+			name: "multiple elements - first wins",
+			html: `<html><body>
+				<h1>First Title</h1>
+				<h1>Second Title</h1>
+				<main><p>First paragraph</p><p>Second paragraph</p></main>
+				<a href="/link1">Link1</a>
+				<a href="/link2">Link2</a>
+			</body></html>`,
+			pageURL: "https://blog.boot.dev",
+			expected: PageData{
+				URL:            "blog.boot.dev",
+				H1:             "First Title",
+				FirstParagraph: "First paragraph",
+				OutgoingLinks:  []string{"https://blog.boot.dev/link1", "https://blog.boot.dev/link2"},
+				ImageURLs:      nil,
+			},
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			actual := extractPageData(tc.html, tc.pageURL)
+			if !reflect.DeepEqual(actual, tc.expected) {
+				t.Errorf("expected %+v, got %+v", tc.expected, actual)
+			}
+		})
+	}
+}
