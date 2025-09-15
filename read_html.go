@@ -1,6 +1,7 @@
 package main
 
 import (
+	"net/url"
 	"strings"
 
 	"github.com/PuerkitoBio/goquery"
@@ -31,4 +32,42 @@ func getGoDocFromHTML(html string) *goquery.Document {
 		return nil
 	}
 	return godoc
+}
+
+func getURLsFromHTML(htmlBody string, baseURL *url.URL) ([]string, error) {
+	doc := getGoDocFromHTML(htmlBody)
+	var urls []string
+
+	doc.Find("a").Each(func(_ int, s *goquery.Selection) {
+		href, exists := s.Attr("href")
+		if !exists {
+			return
+		}
+		absoluteURL, err := baseURL.Parse(href)
+		if err != nil {
+			return
+		}
+		urls = append(urls, absoluteURL.String())
+	})
+
+	return urls, nil
+}
+
+func getImagesFromHTML(htmlBody string, baseURL *url.URL) ([]string, error) {
+	doc := getGoDocFromHTML(htmlBody)
+	var urls []string
+
+	doc.Find("img").Each(func(_ int, s *goquery.Selection) {
+		src, exists := s.Attr("src")
+		if !exists {
+			return
+		}
+		absoluteURL, err := baseURL.Parse(src)
+		if err != nil {
+			return
+		}
+		urls = append(urls, absoluteURL.String())
+	})
+
+	return urls, nil
 }

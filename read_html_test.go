@@ -1,6 +1,8 @@
 package main
 
 import (
+	"net/url"
+	"reflect"
 	"testing"
 )
 
@@ -155,5 +157,124 @@ func TestGetFirstParagraphFromHTMLMainPriority(t *testing.T) {
 		if actual != tc.expected {
 			t.Errorf("expected %q, got %q", tc.expected, actual)
 		}
+	}
+}
+
+func TestGetImagesFromHTMLRelative(t *testing.T) {
+	testCases := []struct {
+		name      string
+		inputURL  string
+		inputBody string
+		expected  []string
+	}{
+		{
+			name:      "relative img src",
+			inputURL:  "https://blog.boot.dev",
+			inputBody: `<html><body><img src="/logo.png" alt="Logo"></body></html>`,
+			expected:  []string{"https://blog.boot.dev/logo.png"},
+		},
+		{
+			name:      "multiple relative img src",
+			inputURL:  "https://blog.boot.dev",
+			inputBody: `<html><body><img src="/logo.png"><img src="/banner.jpg"></body></html>`,
+			expected:  []string{"https://blog.boot.dev/logo.png", "https://blog.boot.dev/banner.jpg"},
+		},
+		{
+			name:      "no img tags",
+			inputURL:  "https://blog.boot.dev",
+			inputBody: `<html><body><p>No images</p></body></html>`,
+			expected:  []string{},
+		},
+		{
+			name:      "img without src",
+			inputURL:  "https://blog.boot.dev",
+			inputBody: `<html><body><img alt="No src"></body></html>`,
+			expected:  []string{},
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			baseURL, err := url.Parse(tc.inputURL)
+			if err != nil {
+				t.Errorf("couldn't parse input URL: %v", err)
+				return
+			}
+
+			actual, err := getImagesFromHTML(tc.inputBody, baseURL)
+			if err != nil {
+				t.Fatalf("unexpected error: %v", err)
+			}
+
+			if len(tc.expected) == 0 && len(actual) == 0 {
+				return
+			}
+
+			if !reflect.DeepEqual(actual, tc.expected) {
+				t.Errorf("expected %v, got %v", tc.expected, actual)
+			}
+		})
+	}
+}
+
+func TestGetURLsFromHTMLAbsolute(t *testing.T) {
+	testCases := []struct {
+		name      string
+		inputURL  string
+		inputBody string
+		expected  []string
+	}{
+		{
+			name:      "absolute anchor href",
+			inputURL:  "https://blog.boot.dev",
+			inputBody: `<html><body><a href="https://blog.boot.dev"><span>Boot.dev</span></a></body></html>`,
+			expected:  []string{"https://blog.boot.dev"},
+		},
+		{
+			name:      "relative anchor href",
+			inputURL:  "https://blog.boot.dev",
+			inputBody: `<html><body><a href="/path">Link</a></body></html>`,
+			expected:  []string{"https://blog.boot.dev/path"},
+		},
+		{
+			name:      "multiple anchors",
+			inputURL:  "https://blog.boot.dev",
+			inputBody: `<html><body><a href="/about">About</a><a href="/contact">Contact</a></body></html>`,
+			expected:  []string{"https://blog.boot.dev/about", "https://blog.boot.dev/contact"},
+		},
+		{
+			name:      "no anchor tags",
+			inputURL:  "https://blog.boot.dev",
+			inputBody: `<html><body><p>No links</p></body></html>`,
+			expected:  []string{},
+		},
+		{
+			name:      "anchor without href",
+			inputURL:  "https://blog.boot.dev",
+			inputBody: `<html><body><a>No href</a></body></html>`,
+			expected:  []string{},
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			baseURL, err := url.Parse(tc.inputURL)
+			if err != nil {
+				t.Errorf("couldn't parse input URL: %v", err)
+				return
+			}
+
+			actual, err := getURLsFromHTML(tc.inputBody, baseURL)
+			if err != nil {
+				t.Fatalf("unexpected error: %v", err)
+			}
+			if len(tc.expected) == 0 && len(actual) == 0 {
+				return
+			}
+
+			if !reflect.DeepEqual(actual, tc.expected) {
+				t.Errorf("expected %v, got %v", tc.expected, actual)
+			}
+		})
 	}
 }
