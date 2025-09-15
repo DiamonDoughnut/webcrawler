@@ -1,6 +1,4 @@
 crawler
-normalize_url.go
-normalize_url_test.go
 read_html.go
 read_html_test.go
 go.sum
